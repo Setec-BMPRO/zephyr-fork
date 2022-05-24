@@ -475,13 +475,9 @@ static int counter_stm32_init_timer(const struct device *dev)
 		return -EIO;
 	}
 
-	if(1){
-		/* configure pinmux */
-		r = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
-		if (r < 0) {
-			LOG_ERR("Counter pinctrl setup failed (%d)", r);
-			return r;
-		}
+	/* if able to configure pinmux then enable external clock source */
+	r = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
+	if (r >= 0) {
 		LL_TIM_SetClockSource(timer, LL_TIM_CLOCKSOURCE_EXT_MODE2);
 	}
 	
