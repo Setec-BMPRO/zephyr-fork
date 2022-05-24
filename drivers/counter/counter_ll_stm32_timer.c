@@ -13,6 +13,12 @@
 #include <stm32_ll_tim.h>
 #include <stm32_ll_rcc.h>
 
+#include <drivers/pinctrl.h>
+#include <device.h>
+#include <kernel.h>
+#include <init.h>
+#include <soc.h>
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(counter_timer_stm32, CONFIG_COUNTER_LOG_LEVEL);
 
@@ -85,6 +91,7 @@ struct counter_stm32_config {
 	TIM_TypeDef *timer;
 	uint32_t prescaler;
 	struct stm32_pclken pclken;
+	const struct pinctrl_dev_config *pcfg;
 	void (*irq_config_func)(const struct device *dev);
 	uint32_t irqn;
 
@@ -468,6 +475,16 @@ static int counter_stm32_init_timer(const struct device *dev)
 		return -EIO;
 	}
 
+	if(1){
+		/* configure pinmux */
+		r = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
+		if (r < 0) {
+			LOG_ERR("Counter pinctrl setup failed (%d)", r);
+			return r;
+		}
+		LL_TIM_SetClockSource(timer, LL_TIM_CLOCKSOURCE_EXT_MODE2);
+	}
+	
 	return 0;
 }
 
@@ -606,6 +623,7 @@ void counter_stm32_irq_handler(const struct device *dev)
 		irq_enable(DT_IRQN(TIMER(idx)));				  \
 	}									  \
 										  \
+	PINCTRL_DT_INST_DEFINE(idx); \
 	static const struct counter_stm32_config counter##idx##_config = {	  \
 		.info = {							  \
 			.max_top_value =					  \
@@ -621,6 +639,7 @@ void counter_stm32_irq_handler(const struct device *dev)
 			.bus = DT_CLOCKS_CELL(TIMER(idx), bus),			  \
 			.enr = DT_CLOCKS_CELL(TIMER(idx), bits)			  \
 		},								  \
+		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(idx),						  \
 		.irq_config_func = counter_##idx##_stm32_irq_config,		  \
 		.irqn = DT_IRQN(TIMER(idx)),					  \
 	};									  \
