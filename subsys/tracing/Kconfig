@@ -62,6 +62,7 @@ config TRACING_TEST
 
 config TRACING_USER
 	bool "Tracing using user-defined functions"
+	select TRACING_CORE
 	help
 	  Use user-defined functions for tracing task switching and irqs
 
